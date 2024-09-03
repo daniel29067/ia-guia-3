@@ -1,288 +1,260 @@
-let weight = []; 
-let E;
-let ERROR;
-let desiredOutput = [1, -1, -1, -1];
-const trueTable = [[1, 1, -1, -1], [1, -1, 1, -1]];
-let response = [];
-let counter;
-let umbral = -1; // Umbral para la función escalón
-let perceptron;
-let table = document.getElementById("resultTable");
-const selectValue1 = document.getElementById("valueV1");
-const selectValue2 = document.getElementById("valueV2");
+class Perceptron {
+    constructor() {
+        this.weight = [];
+        this.E = 0.6;
+        this.ERROR = 0.6; // Valor inicial, se puede ajustar
+        this.desiredOutput = [1, -1, -1, -1];
+        this.trueTable = [[1, 1, -1, -1], [1, -1, 1, -1]];
+        this.response = [];
+        this.counter = 0;
+        this.umbral = -1;
+        this.perceptron = true;
+        this.table = document.getElementById("resultTable");
 
-function stepFunction(x) {
-    return x >= 0 ? 1 : -1;
-}
+        this.selectValue1 = document.getElementById("valueV1");
+        this.selectValue2 = document.getElementById("valueV2");
 
-function operation(index) {
-    let sumproduct = (weight[0] * trueTable[0][index]) + (weight[1] * trueTable[1][index]);
-   // let y = stepFunction(sumproduct - ERROR);
-  let x= Math.tanh(sumproduct-ERROR)
-   let y = stepFunction(x);
-    return y;
-}
-
-function operationTest(val1, val2) {
-    let sumproduct = (weight[0] * val1) + (weight[1] * val2);
-    //let y = stepFunction(sumproduct - ERROR);
-  let x= Math.tanh(sumproduct-ERROR)
-  let y = stepFunction(x);
-   return y;
-}
-
-function validateValue(index, value) {
-    let error = (desiredOutput[index] - value);
-    if (error == 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function weightRecalculate(index) {
-    let Y = desiredOutput[index];
-    let X1 = trueTable[0][index];
-    let X2 = trueTable[1][index];
-    weight[0] = weight[0] + (2 * E * Y * X1);
-    weight[1] = weight[1] + (2 * E * Y * X2);
-    ERROR = (ERROR + (2 * E * Y * umbral));
-}
-
-function viewResponse() {
-    console.log("Response: ", response);
-}
-
-function viewWeight() {
-    console.log("Weight: ", weight);
-}
-
-function useNeuralCase() {
-    if (counter >= 1000) {
-        perceptron = false;
-        return;
-    }
-    counter++;
-    let estado = true;
-    for (let i = 0; i < 4; i++) {
-        let y = operation(i);
-        if (validateValue(i, y) == false) {
-            weightRecalculate(i);
-            estado = false;
-            response = [];
-            break;
+        if (this.selectValue1 && this.selectValue2) {
+            this.selectValue1.addEventListener('change', () => this.testNewValue());
+            this.selectValue2.addEventListener('change', () => this.testNewValue());
         }
-        response.push(y);
     }
-    if (estado == false) {
-        useNeuralCase();
+
+    stepFunction(x) {
+        return x >= 0 ? 1 : -1;
     }
-    return;
-}
 
-function addRowResponse() {
-    for (let i = 0; i < 4; i++) {
-        let x = Math.tanh(((weight[0] * trueTable[0][i]) + (weight[1] * trueTable[1][i])) - ERROR)
-        let salida = stepFunction(x);
-        //let salida = stepFunction(((weight[0] * trueTable[0][i]) + (weight[1] * trueTable[1][i])) - ERROR);
-        table.insertRow(-1).innerHTML =
-            '<tr><th scope="row" class="text-center">' + (i + 1) + '</th><td class="text-center">' + trueTable[0][i] + '</td><td class="text-center">' + weight[0] + '</td><td class="text-center">' + trueTable[1][i] + '</td><td class="text-center"> ' + weight[1] + '</td><td class="text-center">' + ERROR + '</td><td class="text-center">' + salida + '</td></tr>';
+    operation(index) {
+        let sumproduct = (this.weight[0] * this.trueTable[0][index]) + (this.weight[1] * this.trueTable[1][index]);
+        let x = Math.tanh(sumproduct - this.ERROR);
+        return this.stepFunction(x);
     }
-}
 
-function addRowError() {
-    table.insertRow(-1).innerHTML =
-        '<tr><th class="text-center" colspan="7">NO SE ENCONTRÓ VALORES</th></tr>';
-}
-
-function initializeValues() {
-    // Generar valores aleatorios para W1, W2 y E
-    weight[0] = parseFloat((Math.random() * 2)); 
-    weight[1] = parseFloat((Math.random() * 2)); 
-    E = parseFloat((Math.random() * 2)); 
-    ERROR = 0.6; 
-
-    // Mostrar los valores en el HTML
-    document.getElementById("W1").value = weight[0];
-    document.getElementById("W2").value = weight[1];
-    document.getElementById("E").value = E;
-    document.getElementById("ERROR").value = ERROR;
-    
-    counter = 0;
-    perceptron = true;
-    clearLabelTestResponse();
-}
-
-function start() {
-    initializeValues();
-    useNeuralCase();
-    if (table.rows.length > 0) {
-        dropRowTable();
+    operationTest(val1, val2) {
+        let sumproduct = (this.weight[0] * val1) + (this.weight[1] * val2);
+        let x = Math.tanh(sumproduct - this.ERROR);
+        return this.stepFunction(x);
     }
-    if (!perceptron) {
-        addRowError();
-        hiddenLabels();
-        return;
+
+    validateValue(index, value) {
+        let error = (this.desiredOutput[index] - value);
+        return error === 0;
     }
-    addLabels();
-    addRowResponse();
-    addTestResponse();
-    neurona();
-    return;
-}
 
-function dropRowTable() {
-    var rowCount = table.rows.length;
-    for (let i = (rowCount - 1); i > 0; i--) {
-        table.deleteRow(i);
+    weightRecalculate(index) {
+        let Y = this.desiredOutput[index];
+        let X1 = this.trueTable[0][index];
+        let X2 = this.trueTable[1][index];
+        this.weight[0] += (2 * this.E * Y * X1);
+        this.weight[1] += (2 * this.E * Y * X2);
+        this.ERROR += (2 * this.E * Y * this.umbral);
     }
-}
 
-function addLabels() {
-    var myCollapse = document.getElementById('labels');
-    myCollapse.className = " .collapsing";
-    myCollapse.style.display = 'block';
-    myCollapse.setAttribute("data-bs-toggle", "collapse");
-    document.getElementById("nW1").innerHTML = weight[0];
-    document.getElementById("nW2").innerHTML = weight[1];
-    document.getElementById("nError").innerHTML = ERROR;
-    document.getElementById("nCounter").innerHTML = counter;
-}
-
-function addTestResponse() {
-    var myCollapse = document.getElementById('testResponse');
-    myCollapse.className = " .collapsing";
-    myCollapse.style.display = 'block';
-    myCollapse.setAttribute("data-bs-toggle", "collapse");
-}
-
-function hiddenLabels() {
-    var myCollapse = document.getElementById('labels');
-    myCollapse.style.display = 'none';
-}
-
-function testNewValue() {
-    let v1 = parseFloat(selectValue1.value);
-    let v2 = parseFloat(selectValue2.value);
-    let response = operationTest(v1, v2);
-    
-    document.getElementById("response").value = response;
-}
-
-selectValue1.addEventListener('change', (event) => {
-    if (selectValue1.value != '' && selectValue2.value != '') {
-        testNewValue(); 
+    viewResponse() {
+        console.log("Response: ", this.response);
     }
-});
 
-selectValue2.addEventListener("change", (event) => {
-    if (selectValue1.value != '' && selectValue2.value != '') {
-        testNewValue();    
+    viewWeight() {
+        console.log("Weight: ", this.weight);
     }
-});
 
-function clearLabelTestResponse() {
-    selectValue1.value = '';
-    selectValue2.value = '';
-}
-
-
-/* PRUEBAS EN CONSOLA */
-function neurona(){
-
-    weight[0] = parseFloat((Math.random() * 2)); 
-    weight[1] = parseFloat((Math.random() * 2)); 
-    E = parseFloat((Math.random() * 2)); 
-    ERROR = 0.6; 
-    response:[];
-    verifier = false;
-    mal=0;
-    bien=0;
-
-    do{
-        
-        for(x=0;x<desiredOutput.length;x++){
-            console.log("entrada: ",x," ===============================================");
-            do{
-            response[x]=Math.tanh(((trueTable[0][x]*weight[0])+(trueTable[1][x]*weight[1]))-ERROR);
-            if(response[x]>=0){
-                response[x]=1;
+    useNeuralCase() {
+        if (this.counter >= 1000) {
+            this.perceptron = false;
+            return;
+        }
+        this.counter++;
+        let estado = true;
+        for (let i = 0; i < 4; i++) {
+            let y = this.operation(i);
+            if (!this.validateValue(i, y)) {
+                this.weightRecalculate(i);
+                estado = false;
+                this.response = [];
+                break;
             }
-            else{
-                response[x]=-1;
+            this.response.push(y);
+        }
+        if (!estado) {
+            this.useNeuralCase();
+        }
+    }
+
+    addRowResponse() {
+        for (let i = 0; i < 4; i++) {
+            let x = Math.tanh(((this.weight[0] * this.trueTable[0][i]) + (this.weight[1] * this.trueTable[1][i])) - this.ERROR);
+            let salida = this.stepFunction(x);
+            this.table.insertRow(-1).innerHTML =
+                `<tr><th scope="row" class="text-center">${i + 1}</th><td class="text-center">${this.trueTable[0][i]}</td><td class="text-center">${this.weight[0]}</td><td class="text-center">${this.trueTable[1][i]}</td><td class="text-center">${this.weight[1]}</td><td class="text-center">${this.ERROR}</td><td class="text-center">${salida}</td></tr>`;
+        }
+    }
+
+    addRowError() {
+        this.table.insertRow(-1).innerHTML =
+            '<tr><th class="text-center" colspan="7">NO SE ENCONTRÓ VALORES</th></tr>';
+    }
+
+    initializeValues() {
+        this.weight[0] = parseFloat((Math.random() * 2));
+        this.weight[1] = parseFloat((Math.random() * 2));
+        this.E = 0.6;
+        this.ERROR = parseFloat((Math.random() * 2));
+
+        document.getElementById("W1").value = this.weight[0];
+        document.getElementById("W2").value = this.weight[1];
+        document.getElementById("E").value = this.E;
+        document.getElementById("ERROR").value = this.ERROR;
+
+        this.counter = 0;
+        this.perceptron = true;
+        this.clearLabelTestResponse();
+    }
+
+    start() {
+        this.initializeValues();
+        this.useNeuralCase();
+        if (this.table.rows.length > 0) {
+            this.dropRowTable();
+        }
+        if (!this.perceptron) {
+            this.addRowError();
+            this.hiddenLabels();
+            return;
+        }
+        this.addLabels();
+        this.addRowResponse();
+        this.addTestResponse();
+        this.neurona();
+    }
+
+    dropRowTable() {
+        let rowCount = this.table.rows.length;
+        for (let i = rowCount - 1; i > 0; i--) {
+            this.table.deleteRow(i);
+        }
+    }
+
+    addLabels() {
+        let myCollapse = document.getElementById('labels');
+        myCollapse.className = ".collapsing";
+        myCollapse.style.display = 'block';
+        myCollapse.setAttribute("data-bs-toggle", "collapse");
+        document.getElementById("nW1").innerHTML = this.weight[0];
+        document.getElementById("nW2").innerHTML = this.weight[1];
+        document.getElementById("nError").innerHTML = this.ERROR;
+        document.getElementById("nCounter").innerHTML = this.counter;
+    }
+
+    addTestResponse() {
+        let myCollapse = document.getElementById('testResponse');
+        myCollapse.className = ".collapsing";
+        myCollapse.style.display = 'block';
+        myCollapse.setAttribute("data-bs-toggle", "collapse");
+    }
+
+    hiddenLabels() {
+        let myCollapse = document.getElementById('labels');
+        myCollapse.style.display = 'none';
+    }
+
+    testNewValue() {
+        if (this.selectValue1.value !== '' && this.selectValue2.value !== '') {
+            let v1 = parseFloat(this.selectValue1.value);
+            let v2 = parseFloat(this.selectValue2.value);
+            let response = this.operationTest(v1, v2);
+            document.getElementById("response").value = response;
+        }
+    }
+
+    clearLabelTestResponse() {
+        this.selectValue1.value = '';
+        this.selectValue2.value = '';
+    }
+    
+    /* PRUEBAS EN CONSOLA */
+    neurona() {
+        this.weight[0] = parseFloat((Math.random() * 2));
+        this.weight[1] = parseFloat((Math.random() * 2));
+        this.E = 0.6;
+        this.ERROR = parseFloat((Math.random() * 2));
+        this.response = [];
+        let verifier = false;
+        let mal = 0;
+        let bien = 0;
+
+        do {
+            for (let x = 0; x < this.desiredOutput.length; x++) {
+                console.log("entrada: ", x, " ===============================================");
+                do {
+                    this.response[x] = Math.tanh(((this.trueTable[0][x] * this.weight[0]) + (this.trueTable[1][x] * this.weight[1])) - this.ERROR);
+                    this.response[x] = this.stepFunction(this.response[x]);
+
+                    console.log("response: ", this.response[x]);
+                    console.log("output: ", this.desiredOutput[x]);
+
+                    if (this.response[x] == this.desiredOutput[x]) {
+                        if (this.response[0] == this.desiredOutput[0] &&
+                            this.response[1] == this.desiredOutput[1] &&
+                            this.response[2] == this.desiredOutput[2] &&
+                            this.response[3] == this.desiredOutput[3]) {
+                            verifier = true;
+                        }
+                    } else {
+                        this.weight[0] += (2 * this.E * this.desiredOutput[x] * this.trueTable[0][x]);
+                        this.weight[1] += (2 * this.E * this.desiredOutput[x] * this.trueTable[1][x]);
+                        this.ERROR += (2 * this.E * this.desiredOutput[x] * -1);
+                        console.log(false);
+                    }
+                } while (this.response[x] != this.desiredOutput[x]);
             }
-            console.log("response: ",response[x]);
-            console.log("output: ",desiredOutput[x]);
-            if(response[x]==desiredOutput[x]){
-                weight[0]=weight[0]
-                weight[1]=weight[1]
-                ERROR=ERROR
-                console.log(true);
-                if(response[0]==desiredOutput[0] && response[1]==desiredOutput[1] && response[2]==desiredOutput[2]&& response[3]==desiredOutput[3]){
-                    verifier=true;
+            console.log("==================================");
+        } while (!verifier);
+
+        for (let i = 0; i < this.response.length; i++) {
+            console.log("response[", i, "]= ", this.response[i]);
+        }
+
+        for (let j = 0; j <= 1000; j++) {
+            let prueba1 = parseFloat((Math.random() * 100) - 50);
+            let prueba2 = parseFloat((Math.random() * 100) - 50);
+
+            let prueba = Math.tanh(((prueba1 * this.weight[0]) + (prueba2 * this.weight[1])) - this.ERROR);
+            prueba = this.stepFunction(prueba);
+            if (prueba >= 0) {
+                if (prueba1 >= 0 && prueba2 >= 0) {
+                    console.log("bien= ", prueba);
+                    bien++;
+                } else {
+                    console.log("mal= ", prueba);
+                    mal++;
+                }
+            } else {
+                if (prueba1 <= 0 && prueba2 <= 0) {
+                    console.log("bien= ", prueba);
+                    bien++;
+                } else if (prueba1 >= 0 && prueba2 <= 0) {
+                    console.log("bien= ", prueba);
+                    bien++;
+                } else if (prueba1 <= 0 && prueba2 >= 0) {
+                    console.log("bien= ", prueba);
+                    bien++;
+                } else {
+                    console.log("mal= ", prueba);
+                    mal++;
                 }
             }
-            else{
-                weight[0]=weight[0]+(2*E*desiredOutput[x]*trueTable[0][x]);
-                weight[1]=weight[1]+(2*E*desiredOutput[x]*trueTable[1][x]);
-                ERROR=ERROR+(2*E*desiredOutput[x]*-1);
-                console.log(false);
-            }
-        }while(response[x]!=desiredOutput[x])
         }
-        console.log("==================================");
-    }while(!verifier);
 
-    for(i=0;i<response.length;i++){
-        console.log("response[",i,"]= ",response[i]);
+        console.log("=============== FIN ===================");
+        console.log("errores: ", mal);
+        console.log("logros: ", bien);
+        let porcentajeDeError = (mal / 1000) * 100;
+        console.log("Porcentaje de error: ", porcentajeDeError.toFixed(2), "%");
     }
-
-    for(j=0;i<=1000;i++){
-
-    prueba1=parseFloat((Math.random() * 100) - 50)
-    prueba2=parseFloat((Math.random() * 100) - 50)
-
-    prueba=Math.tanh(((prueba1*weight[0])+(prueba2*weight[1]))-ERROR);
-    if(prueba>=0){
-        if(prueba1>=0 && prueba2>=0){
-        prueba=1;
-        console.log("bien= ",prueba);
-        bien=bien+1;
-        }
-        else{
-        prueba=1;
-        console.log("mal= ",prueba);
-        mal=mal+1;
-        }
-    }
-    else if(prueba<=0){
-        if(prueba1<=0 && prueba2<=0 ){
-            prueba=-1;
-            console.log("bien= ",prueba);
-            bien=bien+1;
-            }
-            else if(prueba1>=0 && prueba2<=0 ){
-                prueba=-1;
-                console.log("bien= ",prueba);
-                bien=bien+1;
-                }
-               else if(prueba1<=0 && prueba2>=0 ){
-                    prueba=-1;
-                    console.log("bien= ",prueba);
-                    bien=bien+1;
-                    }
-                    else{
-                        prueba=-1;
-                        console.log("mal= ",prueba);
-                        mal=mal+1;
-                    }
-    }
-    
 }
-console.log("=============== FIN ===================");
-console.log("errores: ",mal);
-console.log("logros: ",bien);
-let porcentajeDeError = (mal / 1000) * 100;
-console.log("Porcentaje de error: ", porcentajeDeError.toFixed(2), "%");
 
-    }
+const perceptron = new Perceptron();
+
+document.getElementById("startButton").addEventListener('click', () => {
+    perceptron.start();
+});
