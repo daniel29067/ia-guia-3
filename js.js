@@ -1,16 +1,75 @@
-class Perceptron {
-    constructor() {
-        this.weight = [];
-        this.E = 0.6;
-        this.ERROR = 0.6; // Valor inicial, se puede ajustar
-        this.desiredOutput = [1, -1, -1, -1];
-        this.trueTable = [[1, 1, -1, -1], [1, -1, 1, -1]];
-        this.response = [];
-        this.counter = 0;
-        this.umbral = -1;
-        this.perceptron = true;
-        this.table = document.getElementById("resultTable");
+// Clase para manejar operaciones básicas del perceptrón
+class Operation {
+    constructor(perceptron) {
+        this.perceptron = perceptron;
+    }
 
+    stepFunction(x) {
+        return x > 0 ? 1 : -1;
+    }
+
+    operation(index) {
+        let sumproduct = (this.perceptron.weight[0] * this.perceptron.trueTable[0][index]) +
+                         (this.perceptron.weight[1] * this.perceptron.trueTable[1][index]);
+        let x = Math.tanh(sumproduct - this.perceptron.ERROR);
+        return this.stepFunction(x);
+    }
+
+    operationTest(val1, val2) {
+        let sumproduct = (this.perceptron.weight[0] * val1) + (this.perceptron.weight[1] * val2);
+        let x = Math.tanh(sumproduct - this.perceptron.ERROR);
+        return this.stepFunction(x);
+    }
+}
+
+// Clase para actualizar los pesos
+class WeightUpdater {
+    constructor(perceptron) {
+        this.perceptron = perceptron;
+    }
+
+    weightRecalculate(index) {
+        let Y = this.perceptron.desiredOutput[index];
+        let X1 = this.perceptron.trueTable[0][index];
+        let X2 = this.perceptron.trueTable[1][index];
+        this.perceptron.weight[0] += (2 * this.perceptron.E * Y * X1);
+        this.perceptron.weight[1] += (2 * this.perceptron.E * Y * X2);
+        this.perceptron.ERROR += (2 * this.perceptron.E * Y * this.perceptron.umbral);
+    }
+}
+
+// Clase para manejar la tabla de resultados
+class TableHandler {
+    constructor() {
+        this.table = document.getElementById("resultTable");
+    }
+
+    addRowResponse(weight, trueTable, ERROR, response) {
+        for (let i = 0; i < 4; i++) {
+            let x = Math.tanh(((weight[0] * trueTable[0][i]) + (weight[1] * trueTable[1][i])) - ERROR);
+            let salida = response[i];
+            this.table.insertRow(-1).innerHTML =
+                `<tr><th scope="row" class="text-center">${i + 1}</th><td class="text-center">${trueTable[0][i]}</td><td class="text-center">${weight[0]}</td><td class="text-center">${trueTable[1][i]}</td><td class="text-center">${weight[1]}</td><td class="text-center">${ERROR}</td><td class="text-center">${salida}</td></tr>`;
+        }
+    }
+
+    addRowError() {
+        this.table.insertRow(-1).innerHTML =
+            '<tr><th class="text-center" colspan="7">NO SE ENCONTRÓ VALORES</th></tr>';
+    }
+
+    dropRowTable() {
+        let rowCount = this.table.rows.length;
+        for (let i = rowCount - 1; i > 0; i--) {
+            this.table.deleteRow(i);
+        }
+    }
+}
+
+// Clase para manejar las interacciones de la interfaz de usuario
+class UIHandler {
+    constructor(perceptron) {
+        this.perceptron = perceptron;
         this.selectValue1 = document.getElementById("valueV1");
         this.selectValue2 = document.getElementById("valueV2");
 
@@ -20,129 +79,29 @@ class Perceptron {
         }
     }
 
-    stepFunction(x) {
-        return x >= 0 ? 1 : -1;
-    }
-
-    operation(index) {
-        let sumproduct = (this.weight[0] * this.trueTable[0][index]) + (this.weight[1] * this.trueTable[1][index]);
-        let x = Math.tanh(sumproduct - this.ERROR);
-        return this.stepFunction(x);
-    }
-
-    operationTest(val1, val2) {
-        let sumproduct = (this.weight[0] * val1) + (this.weight[1] * val2);
-        let x = Math.tanh(sumproduct - this.ERROR);
-        return this.stepFunction(x);
-    }
-
-    validateValue(index, value) {
-        let error = (this.desiredOutput[index] - value);
-        return error === 0;
-    }
-
-    weightRecalculate(index) {
-        let Y = this.desiredOutput[index];
-        let X1 = this.trueTable[0][index];
-        let X2 = this.trueTable[1][index];
-        this.weight[0] += (2 * this.E * Y * X1);
-        this.weight[1] += (2 * this.E * Y * X2);
-        this.ERROR += (2 * this.E * Y * this.umbral);
-    }
-
-    viewResponse() {
-        console.log("Response: ", this.response);
-    }
-
-    viewWeight() {
-        console.log("Weight: ", this.weight);
-    }
-
-    useNeuralCase() {
-        if (this.counter >= 1000) {
-            this.perceptron = false;
-            return;
-        }
-        this.counter++;
-        let estado = true;
-        for (let i = 0; i < 4; i++) {
-            let y = this.operation(i);
-            if (!this.validateValue(i, y)) {
-                this.weightRecalculate(i);
-                estado = false;
-                this.response = [];
-                break;
-            }
-            this.response.push(y);
-        }
-        if (!estado) {
-            this.useNeuralCase();
+    testNewValue() {
+        if (this.selectValue1.value !== '' && this.selectValue2.value !== '') {
+            let v1 = parseFloat(this.selectValue1.value);
+            let v2 = parseFloat(this.selectValue2.value);
+            let response = this.perceptron.operationTest(v1, v2);
+            document.getElementById("response").value = response;
         }
     }
 
-    addRowResponse() {
-        for (let i = 0; i < 4; i++) {
-            let x = Math.tanh(((this.weight[0] * this.trueTable[0][i]) + (this.weight[1] * this.trueTable[1][i])) - this.ERROR);
-            let salida = this.stepFunction(x);
-            this.table.insertRow(-1).innerHTML =
-                `<tr><th scope="row" class="text-center">${i + 1}</th><td class="text-center">${this.trueTable[0][i]}</td><td class="text-center">${this.weight[0]}</td><td class="text-center">${this.trueTable[1][i]}</td><td class="text-center">${this.weight[1]}</td><td class="text-center">${this.ERROR}</td><td class="text-center">${salida}</td></tr>`;
-        }
+    clearLabelTestResponse() {
+        this.selectValue1.value = '';
+        this.selectValue2.value = '';
     }
 
-    addRowError() {
-        this.table.insertRow(-1).innerHTML =
-            '<tr><th class="text-center" colspan="7">NO SE ENCONTRÓ VALORES</th></tr>';
-    }
-
-    initializeValues() {
-        this.weight[0] = parseFloat((Math.random() * 2));
-        this.weight[1] = parseFloat((Math.random() * 2));
-        this.E = 0.6;
-        this.ERROR = parseFloat((Math.random() * 2));
-
-        document.getElementById("W1").value = this.weight[0];
-        document.getElementById("W2").value = this.weight[1];
-        document.getElementById("E").value = this.E;
-        document.getElementById("ERROR").value = this.ERROR;
-
-        this.counter = 0;
-        this.perceptron = true;
-        this.clearLabelTestResponse();
-    }
-
-    start() {
-        this.initializeValues();
-        this.useNeuralCase();
-        if (this.table.rows.length > 0) {
-            this.dropRowTable();
-        }
-        if (!this.perceptron) {
-            this.addRowError();
-            this.hiddenLabels();
-            return;
-        }
-        this.addLabels();
-        this.addRowResponse();
-        this.addTestResponse();
-        this.neurona();
-    }
-
-    dropRowTable() {
-        let rowCount = this.table.rows.length;
-        for (let i = rowCount - 1; i > 0; i--) {
-            this.table.deleteRow(i);
-        }
-    }
-
-    addLabels() {
+    addLabels(weight, ERROR, counter) {
         let myCollapse = document.getElementById('labels');
         myCollapse.className = ".collapsing";
         myCollapse.style.display = 'block';
         myCollapse.setAttribute("data-bs-toggle", "collapse");
-        document.getElementById("nW1").innerHTML = this.weight[0];
-        document.getElementById("nW2").innerHTML = this.weight[1];
-        document.getElementById("nError").innerHTML = this.ERROR;
-        document.getElementById("nCounter").innerHTML = this.counter;
+        document.getElementById("nW1").innerHTML = weight[0];
+        document.getElementById("nW2").innerHTML = weight[1];
+        document.getElementById("nError").innerHTML = ERROR;
+        document.getElementById("nCounter").innerHTML = counter;
     }
 
     addTestResponse() {
@@ -156,28 +115,97 @@ class Perceptron {
         let myCollapse = document.getElementById('labels');
         myCollapse.style.display = 'none';
     }
+}
 
-    testNewValue() {
-        if (this.selectValue1.value !== '' && this.selectValue2.value !== '') {
-            let v1 = parseFloat(this.selectValue1.value);
-            let v2 = parseFloat(this.selectValue2.value);
-            let response = this.operationTest(v1, v2);
-            document.getElementById("response").value = response;
+// Clase principal
+class Perceptron {
+    constructor() {
+        this.weight = [Math.random() * 2, Math.random() * 2];
+        this.E = 0.6;
+        this.ERROR = Math.random() * 2; // Valor inicial, se puede ajustar
+        this.desiredOutput = [1, -1, -1, -1];
+        this.trueTable = [[1, 1, -1, -1], [1, -1, 1, -1]];
+        this.response = [];
+        this.counter = 0;
+        this.umbral = -1;
+        this.perceptron = true;
+        this.tableHandler = new TableHandler();
+        this.operation = new Operation(this);
+        this.weightUpdater = new WeightUpdater(this);
+        this.uiHandler = new UIHandler(this);
+    }
+
+    operationTest(val1, val2) {
+        let sumproduct = (this.weight[0] * val1) + (this.weight[1] * val2);
+        let x = Math.tanh(sumproduct - this.ERROR);
+        return this.stepFunction(x);
+    }
+
+    stepFunction(x) {
+        return x >= 0 ? 1 : -1;
+    }
+
+    validateValue(index, value) {
+        let error = (this.desiredOutput[index] - value);
+        return error === 0;
+    }
+
+    useNeuralCase() {
+        if (this.counter >= 1000) {
+            this.perceptron = false;
+            return;
+        }
+        this.counter++;
+        let estado = true;
+        for (let i = 0; i < 4; i++) {
+            let y = this.operation.operation(i);
+            if (!this.validateValue(i, y)) {
+                this.weightUpdater.weightRecalculate(i);
+                estado = false;
+                this.response = [];
+                break;
+            }
+            this.response.push(y);
+        }
+        if (!estado) {
+            this.useNeuralCase();
         }
     }
 
-    clearLabelTestResponse() {
-        this.selectValue1.value = '';
-        this.selectValue2.value = '';
-    }
-    
-    /* PRUEBAS EN CONSOLA */
-    neurona() {
-        this.weight[0] = parseFloat((Math.random() * 2));
-        this.weight[1] = parseFloat((Math.random() * 2));
+    initializeValues() {
+        this.weight[0] = Math.random() * 2;
+        this.weight[1] = Math.random() * 2;
         this.E = 0.6;
-        this.ERROR = parseFloat((Math.random() * 2));
-        this.response = [];
+        this.ERROR = Math.random() * 2;
+
+        document.getElementById("W1").value = this.weight[0];
+        document.getElementById("W2").value = this.weight[1];
+        document.getElementById("E").value = this.E;
+        document.getElementById("ERROR").value = this.ERROR;
+
+        this.counter = 0;
+        this.perceptron = true;
+        this.uiHandler.clearLabelTestResponse();
+    }
+
+    start() {
+        this.initializeValues();
+        this.useNeuralCase();
+        if (this.tableHandler.table.rows.length > 0) {
+            this.tableHandler.dropRowTable();
+        }
+        if (!this.perceptron) {
+            this.tableHandler.addRowError();
+            this.uiHandler.hiddenLabels();
+            return;
+        }
+        this.uiHandler.addLabels(this.weight, this.ERROR, this.counter);
+        this.tableHandler.addRowResponse(this.weight, this.trueTable, this.ERROR, this.response);
+        this.uiHandler.addTestResponse();
+        this.neurona();
+    }
+
+    neurona() {
         let verifier = false;
         let mal = 0;
         let bien = 0;
@@ -186,9 +214,7 @@ class Perceptron {
             for (let x = 0; x < this.desiredOutput.length; x++) {
                 console.log("entrada: ", x, " ===============================================");
                 do {
-                    this.response[x] = Math.tanh(((this.trueTable[0][x] * this.weight[0]) + (this.trueTable[1][x] * this.weight[1])) - this.ERROR);
-                    this.response[x] = this.stepFunction(this.response[x]);
-
+                    this.response[x] = this.operation.operation(x);
                     console.log("response: ", this.response[x]);
                     console.log("output: ", this.desiredOutput[x]);
 
@@ -200,9 +226,7 @@ class Perceptron {
                             verifier = true;
                         }
                     } else {
-                        this.weight[0] += (2 * this.E * this.desiredOutput[x] * this.trueTable[0][x]);
-                        this.weight[1] += (2 * this.E * this.desiredOutput[x] * this.trueTable[1][x]);
-                        this.ERROR += (2 * this.E * this.desiredOutput[x] * -1);
+                        this.weightUpdater.weightRecalculate(x);
                         console.log(false);
                     }
                 } while (this.response[x] != this.desiredOutput[x]);
@@ -215,11 +239,10 @@ class Perceptron {
         }
 
         for (let j = 0; j <= 1000; j++) {
-            let prueba1 = parseFloat((Math.random() * 100) - 50);
-            let prueba2 = parseFloat((Math.random() * 100) - 50);
+            let prueba1 = Math.random() * 100 - 50;
+            let prueba2 = Math.random() * 100 - 50;
 
-            let prueba = Math.tanh(((prueba1 * this.weight[0]) + (prueba2 * this.weight[1])) - this.ERROR);
-            prueba = this.stepFunction(prueba);
+            let prueba = this.operation.operationTest(prueba1, prueba2);
             if (prueba >= 0) {
                 if (prueba1 >= 0 && prueba2 >= 0) {
                     console.log("bien= ", prueba);
